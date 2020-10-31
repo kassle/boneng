@@ -1,0 +1,19 @@
+{
+    "name": "krybrig/boneng",
+    "description": "PHP framework",
+    "authors": [
+        {
+            "name": "kassle",
+            "email": "kassle@krybrig.org"
+        }
+    ],
+    "autoload": {
+		"psr-4": {
+			"Boneng\\": "src/"
+		}
+	},
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^9"
+    }
+}
