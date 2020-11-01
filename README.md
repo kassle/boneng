@@ -3,4 +3,4 @@ composer install
 
 # Development
 ### Running Unit Tests
-./vendor/bin/phpunit tests
+composer run tests

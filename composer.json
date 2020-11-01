@@ -12,8 +12,13 @@
 			"Boneng\\": "src/"
 		}
 	},
-    "require": {},
+    "require": {
+        "krowinski/http-status-codes": "^1.0"
+    },
     "require-dev": {
         "phpunit/phpunit": "^9"
+    },
+    "scripts": {
+        "tests": "./vendor/bin/phpunit"
     }
 }
