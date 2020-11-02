@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Boneng;
+namespace Boneng\Model;
 
 class Response {
     private $statusCode;

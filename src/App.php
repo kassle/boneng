@@ -7,16 +7,18 @@ use HttpStatusCodes\HttpStatusCodes;
 final class App {
     private $handlers = array();
     private $renderer;
+    // private $decoder;
 
     public function __construct(Renderer $renderer) {
         $this->renderer = $renderer;
+        // $this->decoder = $decoder;
     }
 
     public function addHandler(Handler $handler) : void {
         $this->handlers[$handler->getPath()][$handler->getMethod()] = $handler;
     }
 
-    public function run() {
+    public function run() : void {
         $method = strtoupper($_SERVER['REQUEST_METHOD']);
         $path = $_GET[Parameter::KEY_PATH];
 
@@ -50,6 +52,15 @@ final class App {
 
         throw new \Exception("No handler available for path: " . $path . "; method: " . $method);
     }
+
+    // private function getRequest($method) : array {
+    //     if (METHOD_GET == $method) {
+    //         return $_GET;
+    //     } else {
+    //         $body = json_decode(file_get_contents("php://input"), true, 5);
+    //         return array_merge($_POST, $body);
+    //     }
+    // }
 
     private function isHtml() : bool {
         if (\array_key_exists(Parameter::KEY_ACCEPT, $_GET)) {
