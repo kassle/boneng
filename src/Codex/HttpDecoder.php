@@ -2,29 +2,41 @@
 
 namespace Boneng\Codex;
 
-use Boneng\Model;
+use Boneng\Model\Request;
 
 class HttpDecoder implements Decoder {
     private const KEY_PATH = 'path';
     private const KEY_ACCEPT = 'HTTP_ACCEPT';
     private const KEY_METHOD = 'REQUEST_METHOD';
+    private const KEY_CONTENT_TYPE = 'Content-Type';
+    private const KEY_CONTENT_LENGTH = 'Content-Length';
 
-    private const VALUE_ACCEPT_HTML = 'text/html';
+    private const VALUE_TYPE_HTML = 'text/html';
+    private const VALUE_TYPE_JSON = 'application/json';
+
+    private const DEFAULT_MAX_LENGTH = 1024;
+    private const DEFAULT_INPUT_SRC = "php://input";
+
+    public function __construct(int $maxLength, string $inputSrc) {
+        $this->maxLength = $maxLength;
+        $this->inputSrc = $inputSrc;
+    }
+
+    public function decode() : Request {
+        $headers = $this->getHeaders();
+        return new Request(
+            $this->getMethod(),
+            $this->getApiPath(),
+            $headers,
+            $_REQUEST,
+            $this->getBody($headers));
+    }
 
     public function getMethod() : string {
         if (\array_key_exists(HttpDecoder::KEY_METHOD, $_SERVER)) {
-            $method = \strtoupper($_SERVER[HttpDecoder::KEY_METHOD]);
-            if (Decoder::METHOD_GET === $method) {
-                return Decoder::METHOD_GET;
-            } else if (Decoder::METHOD_POST === $method) {
-                return Decoder::METHOD_POST;
-            } else if (Decoder::METHOD_OPTIONS === $method) {
-                return Decoder::METHOD_OPTIONS;
-            } else {
-                return Decoder::METHOD_OTHER;
-            }
+            return \strtoupper($_SERVER[HttpDecoder::KEY_METHOD]);
         } else {
-            return Decoder::METHOD_OTHER;
+            throw new \InvalidArgumentException('Request method not specified');
         }
     }
 
@@ -32,7 +44,7 @@ class HttpDecoder implements Decoder {
         if (\array_key_exists(HttpDecoder::KEY_PATH, $_REQUEST)) {
             return $_REQUEST[HttpDecoder::KEY_PATH];
         } else {
-            throw new \InvalidArgumentException("API Path is not specified");
+            return '/';
         }
     }
 
@@ -46,7 +58,7 @@ class HttpDecoder implements Decoder {
 
     private function isAcceptHtml() : bool {
         if (\array_key_exists(HttpDecoder::KEY_ACCEPT, $_SERVER)) {
-            $result = \stripos($_SERVER[HttpDecoder::KEY_ACCEPT], HttpDecoder::VALUE_ACCEPT_HTML);
+            $result = \stripos($_SERVER[HttpDecoder::KEY_ACCEPT], HttpDecoder::VALUE_TYPE_HTML);
             if ($result === false) {
                 return false;
             } else {
@@ -57,11 +69,46 @@ class HttpDecoder implements Decoder {
         }
     }
 
-    public function getRequestParameters() : array {
-        return $_REQUEST;
+    private function getHeaders() : array {
+        $headers = array(); 
+        foreach ($_SERVER as $key => $value) { 
+            if (substr($key, 0, 5) == 'HTTP_') {
+                $name = mb_convert_case(str_replace('_', '-', substr($key, 5)), MB_CASE_TITLE, 'UTF-8');
+                $headers[$name] = $value; 
+            } else if (substr($key, 0, 8) == 'CONTENT_') {
+                $name = mb_convert_case(str_replace('_', '-', $key), MB_CASE_TITLE, 'UTF-8');
+                $headers[$name] = $value; 
+            }
+        } 
+        return $headers; 
     }
 
-    public function decode() : Request {
-        return new Request('', '', array(), array(), array());
+    private function getBody(array $headers) : array {
+        if ($this->isBodyRequiredHeadersExist($headers)) {
+            $type = $headers[HttpDecoder::KEY_CONTENT_TYPE];
+            $length = intval($headers[HttpDecoder::KEY_CONTENT_LENGTH]);
+            if (HttpDecoder::VALUE_TYPE_JSON == $type && $this->maxLength >= $length) {
+                return $this->parseBody($length);
+            } else {
+                throw new \InvalidArgumentException('Unsupported content-type: ' . $headers[HttpDecoder::KEY_CONTENT_TYPE] . ' and content-length: ' . $length);
+            }
+        } else {
+            return array();
+        }
+    }
+
+    private function isBodyRequiredHeadersExist(array $headers) : bool {
+        return \array_key_exists(HttpDecoder::KEY_CONTENT_TYPE, $headers) &&
+            \array_key_exists(HttpDecoder::KEY_CONTENT_LENGTH, $headers);
+    }
+
+    private function parseBody(int $length) : array {
+        try {
+            $raw = \file_get_contents($this->inputSrc, false, NULL, 0, $length);
+            return \json_decode($raw, true);
+        } catch (\Throwable $err) {
+            error_log("$err");
+            throw new \InvalidArgumentException('Unable to process request body');
+        }
     }
 }

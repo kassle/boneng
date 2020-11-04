@@ -1,7 +1,8 @@
 <?php declare(strict_types=1);
 
 namespace Boneng\Codex;
-use Boneng\Model;
+
+use Boneng\Model\Request;
 
 interface Decoder {
     public const ACCEPTED_TYPE_HTML = 2;
