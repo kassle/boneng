@@ -6,12 +6,10 @@ use Boneng\Model\Request;
 
 class HttpDecoder implements Decoder {
     private const KEY_PATH = 'path';
-    private const KEY_ACCEPT = 'HTTP_ACCEPT';
     private const KEY_METHOD = 'REQUEST_METHOD';
     private const KEY_CONTENT_TYPE = 'Content-Type';
     private const KEY_CONTENT_LENGTH = 'Content-Length';
 
-    private const VALUE_TYPE_HTML = 'text/html';
     private const VALUE_TYPE_JSON = 'application/json';
 
     private const DEFAULT_MAX_LENGTH = 1024;
@@ -32,7 +30,7 @@ class HttpDecoder implements Decoder {
             $this->getBody($headers));
     }
 
-    public function getMethod() : string {
+    private function getMethod() : string {
         if (\array_key_exists(HttpDecoder::KEY_METHOD, $_SERVER)) {
             return \strtoupper($_SERVER[HttpDecoder::KEY_METHOD]);
         } else {
@@ -40,32 +38,11 @@ class HttpDecoder implements Decoder {
         }
     }
 
-    public function getApiPath() : string {
+    private function getApiPath() : string {
         if (\array_key_exists(HttpDecoder::KEY_PATH, $_REQUEST)) {
             return $_REQUEST[HttpDecoder::KEY_PATH];
         } else {
             return '/';
-        }
-    }
-
-    public function getAcceptedType() : int {
-        if ($this->isAcceptHtml()) {
-            return Decoder::ACCEPTED_TYPE_HTML;
-        } else {
-            return Decoder::ACCEPTED_TYPE_JSON;
-        }
-    }
-
-    private function isAcceptHtml() : bool {
-        if (\array_key_exists(HttpDecoder::KEY_ACCEPT, $_SERVER)) {
-            $result = \stripos($_SERVER[HttpDecoder::KEY_ACCEPT], HttpDecoder::VALUE_TYPE_HTML);
-            if ($result === false) {
-                return false;
-            } else {
-                return true;
-            }
-        } else {
-            return false;
         }
     }
 

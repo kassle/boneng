@@ -3,48 +3,61 @@
 namespace Boneng;
 
 use PHPUnit\Framework\TestCase;
+use Boneng\Codex\Decoder;
+use Boneng\Model\Request;
+use Boneng\Model\Response;
 use HttpStatusCodes\HttpStatusCodes;
 
 final class AppTest extends TestCase {
+    private $decoder;
     private $renderer;
+
     private $app;
 
     protected function setUp(): void {
+        $this->decoder = $this->createMock(Decoder::class);
         $this->renderer = $this->createMock(Renderer::class);
-        $this->app = new App($this->renderer);
+
+        $this->app = new App($this->decoder, $this->renderer);
     }
 
     public function testRunWithoutAnyHandlerShouldReturn404() {
-        $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_GET['path'] = "/articles/404";
+        $request = $this->createMock(Request::class);
+        $request->expects($this->any())->method('getMethod')->will($this->returnValue('GET'));
+        $request->expects($this->any())->method('getPath')->will($this->returnValue('/article/404'));
+        $request->expects($this->any())->method('getHeaders')->will($this->returnValue(array()));
+        $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
 
-        // $this->app->run();
-        \http_response_code(HttpStatusCodes::HTTP_NOT_FOUND_CODE);
+        $this->app->run();
 
         $this->assertEquals(HttpStatusCodes::HTTP_NOT_FOUND_CODE, \http_response_code());
     }
 
-    // public function testHtmlRunWithoutAnyHandlerRenderTemplate() { 
-    //     $_SERVER['REQUEST_METHOD'] = Method::GET;
-    //     $_GET[Parameter::KEY_PATH] = "/articles/any";
-    //     $_GET[Parameter::KEY_ACCEPT] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+    public function testRunWithoutAnyHandlerShouldReturn404InHtmlFormat() {
+        $headers = [ 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' ];
+        $body = '404 - Not Found';
 
-    //     $body = '404 - Not Found';
+        $request = $this->createMock(Request::class);
+        $request->expects($this->any())->method('getMethod')->will($this->returnValue('GET'));
+        $request->expects($this->any())->method('getPath')->will($this->returnValue('/article/404'));
+        $request->expects($this->any())->method('getHeaders')->will($this->returnValue($headers));
+        $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
 
-    //     $response = new Response(HttpStatusCodes::HTTP_OK_CODE, array(), $body);
-    //     $this->renderer
-    //         ->expects($this->once())
-    //         ->method('render')
-    //         ->with($this->callback(function($result) {
-    //             return $result->getStatus() === HttpStatusCodes::HTTP_NOT_FOUND_CODE;
-    //         }))
-    //         ->will($this->returnValue($response));
+        $response = new Response(HttpStatusCodes::HTTP_OK_CODE, array(), $body);
+        $this->renderer
+            ->expects($this->once())
+            ->method('render')
+            ->with($this->callback(function($result) {
+                return $result->getStatus() === HttpStatusCodes::HTTP_NOT_FOUND_CODE;
+            }))
+            ->will($this->returnValue($response));
 
-    //     $this->app->run();
 
-    //     $this->assertEquals(HttpStatusCodes::HTTP_OK_CODE, \http_response_code());
-    //     $this->expectOutputString($body);
-    // }
+        $this->expectOutputString($body);
+        $this->app->run();
+        $this->assertEquals(HttpStatusCodes::HTTP_OK_CODE, \http_response_code());
+
+    }
 
     // public function testRunGetShouldPassParameterToHandler() {
     //     $path = '/article/123';

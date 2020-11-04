@@ -2,6 +2,8 @@
 
 namespace Boneng;
 
+use Boneng\Model\Response;
+
 interface Renderer {
     public function render(Result $result) : Response;
 }
