@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Boneng\Codex\Decoder;
 use Boneng\Model\Request;
 use Boneng\Model\Response;
+use Boneng\Exception\NoHandlerException;
 use HttpStatusCodes\HttpStatusCodes;
 
 final class AppTest extends TestCase {
@@ -56,56 +57,98 @@ final class AppTest extends TestCase {
         $this->expectOutputString($body);
         $this->app->run();
         $this->assertEquals(HttpStatusCodes::HTTP_OK_CODE, \http_response_code());
-
     }
 
-    // public function testRunGetShouldPassParameterToHandler() {
-    //     $path = '/article/123';
-    //     $_SERVER['REQUEST_METHOD'] = 'Method::GET';
-    //     $_GET[Parameter::KEY_PATH] = $path;
-    //     $_GET['param_number_one'] = 'value_number_one';
-    //     $_GET['param_number_two'] = 'value_number_two';
+    public function testRunShouldReturn400WhenFailInHandlerValidation() {
+        $path = '/users/password';
+        $method = 'POST';
 
-    //     $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
+        $request = $this->createMock(Request::class);
+        $request->expects($this->any())->method('getMethod')->will($this->returnValue($method));
+        $request->expects($this->any())->method('getPath')->will($this->returnValue($path));
+        $request->expects($this->any())->method('getHeaders')->will($this->returnValue(array()));
 
-    //     $handler = $this->createMock(Handler::class);
-    //     $handler->expects($this->any())->method('getMethod')->will($this->returnValue(Method::GET));
-    //     $handler->expects($this->any())->method('getPath')->will($this->returnValue($path));
-    //     $handler->expects($this->once())
-    //         ->method('run')
-    //         ->with($this->callback(function($param) {
-    //             return !array_diff($param, $_GET) && !array_diff($_GET, $param);
-    //         }))
-    //         ->will($this->returnValue($result));
+        $handler = $this->createMock(Handler::class);
+        $handler->expects($this->any())->method('getPath')->will($this->returnValue($path));
+        $handler->expects($this->any())->method('getMethod')->will($this->returnValue($method));
+        $handler->expects($this->once())->method('validate')->with($this->equalTo($request))->will($this->returnValue(false));
 
-    //     $this->app->addHandler($handler);
-    //     $this->app->run();
+        $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
 
-    //     $this->assertEquals(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, \http_response_code());
-    // }
+        $this->app->addHandler($handler);
+        $this->app->run();
 
-    // public function testRunPostShouldPassParameterToHandler() {
-    //     $path = '/article/post';
-    //     $_SERVER['REQUEST_METHOD'] = Method::POST;
-    //     $_POST[Parameter::KEY_PATH] = $path;
-    //     $_POST['param_number_one'] = 'value_number_one';
-    //     $_POST['param_number_two'] = 'value_number_two';
+        $this->assertEquals(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, \http_response_code());
+    }
 
-    //     $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
+    public function testRunShouldPassRequestToHandler() {
+        $path = '/article';
+        $method = 'POST';
 
-    //     $handler = $this->createMock(Handler::class);
-    //     $handler->expects($this->any())->method('getMethod')->will($this->returnValue(Method::GET));
-    //     $handler->expects($this->any())->method('getPath')->will($this->returnValue($path));
-    //     $handler->expects($this->once())
-    //         ->method('run')
-    //         ->with($this->callback(function($param) {
-    //             return !array_diff($param, $_GET) && !array_diff($_GET, $param);
-    //         }))
-    //         ->will($this->returnValue($result));
+        $result = $this->createMock(Result::class);
+        $result->expects($this->any())->method('getStatus')->will($this->returnValue(HttpStatusCodes::HTTP_OK_CODE));
 
-    //     $this->app->addHandler($handler);
-    //     $this->app->run();
+        $request = $this->createMock(Request::class);
+        $request->expects($this->any())->method('getMethod')->will($this->returnValue($method));
+        $request->expects($this->any())->method('getPath')->will($this->returnValue($path));
+        $request->expects($this->any())->method('getHeaders')->will($this->returnValue(array()));
 
-    //     $this->assertEquals(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, \http_response_code());
-    // }
+        $handler = $this->createMock(Handler::class);
+        $handler->expects($this->any())->method('getPath')->will($this->returnValue($path));
+        $handler->expects($this->any())->method('getMethod')->will($this->returnValue($method));
+        $handler->expects($this->once())->method('validate')->with($this->equalTo($request))->will($this->returnValue(true));
+        $handler->expects($this->once())->method('run')->with($this->equalTo($request))->will($this->returnValue($result));
+
+        $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
+
+        $this->app->addHandler($handler);
+        $this->app->run();
+
+        $this->assertEquals(HttpStatusCodes::HTTP_OK_CODE, \http_response_code());
+    }
+
+    public function testRunShouldReturn500WhenHandlerValidationHasError() {
+        $path = '/users';
+        $method = 'DELETE';
+
+        $request = $this->createMock(Request::class);
+        $request->expects($this->any())->method('getMethod')->willReturn($method);
+        $request->expects($this->any())->method('getPath')->willReturn($path);
+        $request->expects($this->any())->method('getHeaders')->willReturn(array());
+
+        $handler = $this->createMock(Handler::class);
+        $handler->expects($this->any())->method('getPath')->willReturn($path);
+        $handler->expects($this->any())->method('getMethod')->willReturn($method);
+        $handler->expects($this->once())->method('validate')->with($this->equalTo($request))->will($this->throwException(new \Exception()));
+
+        $this->decoder->expects($this->once())->method('decode')->willReturn($request);
+
+        $this->app->addHandler($handler);
+        $this->app->run();
+
+        $this->assertEquals(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, \http_response_code());
+    }
+
+    public function testRunShouldReturn500WhenHandlerRunHasError() {
+        $path = '/users';
+        $method = 'UPDATE';
+
+        $request = $this->createMock(Request::class);
+        $request->expects($this->any())->method('getMethod')->willReturn($method);
+        $request->expects($this->any())->method('getPath')->willReturn($path);
+        $request->expects($this->any())->method('getHeaders')->willReturn(array());
+
+        $handler = $this->createMock(Handler::class);
+        $handler->expects($this->any())->method('getPath')->willReturn($path);
+        $handler->expects($this->any())->method('getMethod')->willReturn($method);
+        $handler->expects($this->once())->method('validate')->with($this->equalTo($request))->willReturn(true);
+        $handler->expects($this->once())->method('run')->with($this->equalTo($request))->will($this->throwException(new \Exception()));
+
+        $this->decoder->expects($this->once())->method('decode')->willReturn($request);
+
+        $this->app->addHandler($handler);
+        $this->app->run();
+
+        $this->assertEquals(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, \http_response_code());
+    }
 }

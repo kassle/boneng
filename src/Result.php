@@ -2,7 +2,7 @@
 
 namespace Boneng;
 
-final class Result {
+class Result {
     private $status;
 
     public function __construct(int $status) {

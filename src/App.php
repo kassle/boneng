@@ -5,6 +5,7 @@ namespace Boneng;
 use Boneng\Codex\Decoder;
 use Boneng\Model\Request;
 use Boneng\Model\Response;
+use Boneng\Exception\NoHandlerException;
 use HttpStatusCodes\HttpStatusCodes;
 
 final class App {
@@ -28,10 +29,17 @@ final class App {
 
         try {
             $handler = $this->findHandler($request->getPath(), $request->getMethod());
-            $result = $handler->run($_GET);
-        } catch (\Throwable $ex) {
-            // error_log("$ex");
+            if ($handler->validate($request)) {
+                $result = $handler->run($request);
+            } else {
+                $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
+            }
+        } catch (NoHandlerException $ex) {
+            error_log($ex->getMessage());
             $result = new Result(HttpStatusCodes::HTTP_NOT_FOUND_CODE);
+        } catch (\Throwable $err) {
+            error_log("$err");
+            $result = new Result(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE);
         }
 
         if ($this->isHtml($request)) {
@@ -54,7 +62,7 @@ final class App {
             }
         }
 
-        throw new \Exception("No handler available for path: " . $path . "; method: " . $method);
+        throw new NoHandlerException($method, $path);
     }
 
     private function isHtml(Request $request) : bool {
