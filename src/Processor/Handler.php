@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Boneng;
+namespace Boneng\Processor;
 
 use Boneng\Model\Request;
 use Boneng\Model\Result;
