@@ -3,6 +3,7 @@
 namespace Boneng;
 
 use Boneng\Model\Request;
+use Boneng\Model\Result;
 
 interface Handler {
     public function getPath() : string;

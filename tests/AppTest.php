@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Boneng\Codex\Decoder;
 use Boneng\Model\Request;
 use Boneng\Model\Response;
+use Boneng\Model\Result;
 use Boneng\Exception\NoHandlerException;
 use HttpStatusCodes\HttpStatusCodes;
 
