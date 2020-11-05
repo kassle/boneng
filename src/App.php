@@ -3,6 +3,8 @@
 namespace Boneng;
 
 use Boneng\Codex\Decoder;
+use Boneng\Exception\DecodeBodyException;
+use Boneng\Exception\DecodeHeaderException;
 use Boneng\Exception\NoHandlerException;
 use Boneng\Model\Request;
 use Boneng\Model\Response;
@@ -30,15 +32,21 @@ final class App {
     }
 
     public function run() : void {
-        $request = $this->decoder->decode();
-
+        $request = NULL;
         try {
+            $request = $this->decoder->decode();
             $handler = $this->findHandler($request->getPath(), $request->getMethod());
             if ($handler->validate($request)) {
                 $result = $handler->run($request);
             } else {
                 $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
             }
+        } catch (DecodeHeaderException $ex) {
+            error_log($ex->getMessage());
+            $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
+        } catch (DecodeBodyException $ex) {
+            error_log("$ex");
+            $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
         } catch (NoHandlerException $ex) {
             error_log($ex->getMessage());
             $result = new Result(HttpStatusCodes::HTTP_NOT_FOUND_CODE);
@@ -70,10 +78,14 @@ final class App {
         throw new NoHandlerException($method, $path);
     }
 
-    private function isHtml(Request $request) : bool {
-        $headers = $request->getHeaders();
-        if (\array_key_exists(App::KEY_ACCEPT_TYPE, $headers)) {
-            return (\stripos($headers[App::KEY_ACCEPT_TYPE], App::VALUE_TYPE_HTML) >= 0);
+    private function isHtml(Request $request = NULL) : bool {
+        if (!\is_null($request)) {
+            $headers = $request->getHeaders();
+            if (\array_key_exists(App::KEY_ACCEPT_TYPE, $headers)) {
+                return (\stripos($headers[App::KEY_ACCEPT_TYPE], App::VALUE_TYPE_HTML) >= 0);
+            } else {
+                return false;
+            }
         } else {
             return false;
         }

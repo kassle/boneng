@@ -3,6 +3,8 @@
 namespace Boneng\Codex;
 
 use PHPUnit\Framework\TestCase;
+use Boneng\Exception\DecodeBodyException;
+use Boneng\Exception\DecodeHeaderException;
 use Boneng\Model\Request;
 
 final class HttpDecoderTest extends TestCase {
@@ -44,10 +46,10 @@ final class HttpDecoderTest extends TestCase {
         $this->assertEquals($method, $request->getMethod());
     }
 
-    public function testDecodeThrowInvalidArgumentExceptionWhenMethodNotSpecified() {
+    public function testDecodeThrowDecodeHeaderExceptionWhenMethodNotSpecified() {
         unset($_SERVER['REQUEST_METHOD']);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(DecodeHeaderException::class);
 
         $this->decoder->decode();
     }
@@ -118,8 +120,8 @@ final class HttpDecoderTest extends TestCase {
         $this->assertEquals(0, sizeof($request->getBody()));
     }
 
-    public function testDecodeShouldThrowInvalidArgumentExceptionWhenBodyIsNotJson() {
-        $this->expectException(\InvalidArgumentException::class);
+    public function testDecodeShouldThrowDecodeHeaderExceptionWhenBodyIsNotJson() {
+        $this->expectException(DecodeHeaderException::class);
 
         $_SERVER['CONTENT_TYPE'] = 'text/html';
         $_SERVER['CONTENT_LENGTH'] = '100';
@@ -128,8 +130,8 @@ final class HttpDecoderTest extends TestCase {
         $this->decoder->decode();
     }
 
-    public function testDecodeShouldThrowInvalidArgumentExceptionWhenBodyLengthIsTooLarge() {
-        $this->expectException(\InvalidArgumentException::class);
+    public function testDecodeShouldThrowDecodeHeaderExceptionWhenBodyLengthIsTooLarge() {
+        $this->expectException(DecodeHeaderException::class);
 
         $_SERVER['CONTENT_TYPE'] = 'text/html';
         $_SERVER['CONTENT_LENGTH'] = '1025';
@@ -163,7 +165,7 @@ final class HttpDecoderTest extends TestCase {
         $_SERVER['CONTENT_TYPE'] = 'application/json';
         $_SERVER['CONTENT_LENGTH'] = \strlen($json);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(DecodeBodyException::class);
         $request = $this->decoder->decode();
     }
 

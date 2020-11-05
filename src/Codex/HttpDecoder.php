@@ -2,6 +2,8 @@
 
 namespace Boneng\Codex;
 
+use Boneng\Exception\DecodeBodyException;
+use Boneng\Exception\DecodeHeaderException;
 use Boneng\Model\Request;
 
 class HttpDecoder implements Decoder {
@@ -34,7 +36,7 @@ class HttpDecoder implements Decoder {
         if (\array_key_exists(HttpDecoder::KEY_METHOD, $_SERVER)) {
             return \strtoupper($_SERVER[HttpDecoder::KEY_METHOD]);
         } else {
-            throw new \InvalidArgumentException('Request method not specified');
+            throw new DecodeHeaderException('Request method not specified');
         }
     }
 
@@ -67,7 +69,7 @@ class HttpDecoder implements Decoder {
             if (HttpDecoder::VALUE_TYPE_JSON == $type && $this->maxLength >= $length) {
                 return $this->parseBody($length);
             } else {
-                throw new \InvalidArgumentException('Unsupported content-type: ' . $headers[HttpDecoder::KEY_CONTENT_TYPE] . ' and content-length: ' . $length);
+                throw new DecodeHeaderException('Unsupported content-type: ' . $headers[HttpDecoder::KEY_CONTENT_TYPE] . ' and content-length: ' . $length);
             }
         } else {
             return array();
@@ -84,8 +86,7 @@ class HttpDecoder implements Decoder {
             $raw = \file_get_contents($this->inputSrc, false, NULL, 0, $length);
             return \json_decode($raw, true);
         } catch (\Throwable $err) {
-            error_log("$err");
-            throw new \InvalidArgumentException('Unable to process request body');
+            throw new DecodeBodyException('Unable to process request body', $err);
         }
     }
 }

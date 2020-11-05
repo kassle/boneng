@@ -3,6 +3,8 @@
 namespace Boneng;
 
 use PHPUnit\Framework\TestCase;
+use Boneng\Exception\DecodeBodyException;
+use Boneng\Exception\DecodeHeaderException;
 use Boneng\Exception\NoHandlerException;
 use Boneng\Codex\Decoder;
 use Boneng\Model\Request;
@@ -25,6 +27,34 @@ final class AppTest extends TestCase {
         $this->jsonRenderer = $this->createMock(Renderer::class);
 
         $this->app = new App($this->decoder, $this->htmlRenderer, $this->jsonRenderer);
+    }
+
+    public function testDecodingFailProcessHeaderShouldReturn400() {
+        $this->decoder->expects($this->once())->method('decode')->will($this->throwException(new DecodeHeaderException('no http method header')));
+
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->with($this->callback(function($result) {
+                return HttpStatusCodes::HTTP_BAD_REQUEST_CODE === $result->getStatus();
+            }))->willReturn(new Response(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, array(), ""));
+
+        $this->app->run();
+
+        $this->assertEquals(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, \http_response_code());
+    }
+
+    public function testDecodingFailProcessBodyShouldReturn400() {
+        $this->decoder->expects($this->once())->method('decode')->will($this->throwException(new DecodeBodyException('unable to parse body')));
+
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->with($this->callback(function($result) {
+                return HttpStatusCodes::HTTP_BAD_REQUEST_CODE === $result->getStatus();
+            }))->willReturn(new Response(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, array(), ""));
+
+        $this->app->run();
+
+        $this->assertEquals(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, \http_response_code());
     }
 
     public function testRunWithoutAnyHandlerShouldReturn404() {
@@ -144,7 +174,10 @@ final class AppTest extends TestCase {
         $handler = $this->createMock(Handler::class);
         $handler->expects($this->any())->method('getPath')->willReturn($path);
         $handler->expects($this->any())->method('getMethod')->willReturn($method);
-        $handler->expects($this->once())->method('validate')->with($this->equalTo($request))->will($this->throwException(new \Exception()));
+        $handler->expects($this->once())
+            ->method('validate')
+            ->with($this->equalTo($request))
+            ->will($this->throwException(new \Exception()));
 
         $this->decoder->expects($this->once())->method('decode')->willReturn($request);
 
