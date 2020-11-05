@@ -16,11 +16,13 @@ final class App {
     private const VALUE_TYPE_HTML = 'text/html';
     private $handlers = array();
     private $decoder;
-    private $renderer;
+    private $htmlRenderer;
+    private $jsonRenderer;
 
-    public function __construct(Decoder $decoder, Renderer $renderer) {
+    public function __construct(Decoder $decoder, Renderer $htmlRenderer, Renderer $jsonRenderer) {
         $this->decoder = $decoder;
-        $this->renderer = $renderer;
+        $this->htmlRenderer = $htmlRenderer;
+        $this->jsonRenderer = $jsonRenderer;
     }
 
     public function addHandler(Handler $handler) : void {
@@ -46,9 +48,9 @@ final class App {
         }
 
         if ($this->isHtml($request)) {
-            $response = $this->renderer->render($result);
+            $response = $this->htmlRenderer->render($result);
         } else {
-            $response = new Response($result->getStatus(), array(), "");
+            $response = $this->jsonRenderer->render($result);
         }
 
         \http_response_code($response->getStatusCode());

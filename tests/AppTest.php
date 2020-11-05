@@ -14,15 +14,17 @@ use HttpStatusCodes\HttpStatusCodes;
 
 final class AppTest extends TestCase {
     private $decoder;
-    private $renderer;
+    private $htmlRenderer;
+    private $jsonRenderer;
 
     private $app;
 
     protected function setUp(): void {
         $this->decoder = $this->createMock(Decoder::class);
-        $this->renderer = $this->createMock(Renderer::class);
+        $this->htmlRenderer = $this->createMock(Renderer::class);
+        $this->jsonRenderer = $this->createMock(Renderer::class);
 
-        $this->app = new App($this->decoder, $this->renderer);
+        $this->app = new App($this->decoder, $this->htmlRenderer, $this->jsonRenderer);
     }
 
     public function testRunWithoutAnyHandlerShouldReturn404() {
@@ -30,7 +32,14 @@ final class AppTest extends TestCase {
         $request->expects($this->any())->method('getMethod')->will($this->returnValue('GET'));
         $request->expects($this->any())->method('getPath')->will($this->returnValue('/article/404'));
         $request->expects($this->any())->method('getHeaders')->will($this->returnValue(array()));
+
         $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
+
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->with($this->callback(function($result) {
+                return HttpStatusCodes::HTTP_NOT_FOUND_CODE === $result->getStatus();
+            }))->willReturn(new Response(HttpStatusCodes::HTTP_NOT_FOUND_CODE, array(), ""));
 
         $this->app->run();
 
@@ -48,7 +57,7 @@ final class AppTest extends TestCase {
         $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
 
         $response = new Response(HttpStatusCodes::HTTP_OK_CODE, array(), $body);
-        $this->renderer
+        $this->htmlRenderer
             ->expects($this->once())
             ->method('render')
             ->with($this->callback(function($result) {
@@ -76,6 +85,12 @@ final class AppTest extends TestCase {
         $handler->expects($this->any())->method('getMethod')->will($this->returnValue($method));
         $handler->expects($this->once())->method('validate')->with($this->equalTo($request))->will($this->returnValue(false));
 
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->with($this->callback(function($result) {
+                return HttpStatusCodes::HTTP_BAD_REQUEST_CODE === $result->getStatus();
+            }))->willReturn(new Response(HttpStatusCodes::HTTP_BAD_REQUEST_CODE, array(), ""));
+
         $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
 
         $this->app->addHandler($handler);
@@ -87,6 +102,8 @@ final class AppTest extends TestCase {
     public function testRunShouldPassRequestToHandler() {
         $path = '/article';
         $method = 'POST';
+
+        $this->jsonRenderer->method('render')->willReturn(new Response(HttpStatusCodes::HTTP_OK_CODE, array(), ""));
 
         $result = $this->createMock(Result::class);
         $result->expects($this->any())->method('getStatus')->will($this->returnValue(HttpStatusCodes::HTTP_OK_CODE));
@@ -103,6 +120,11 @@ final class AppTest extends TestCase {
         $handler->expects($this->once())->method('run')->with($this->equalTo($request))->will($this->returnValue($result));
 
         $this->decoder->expects($this->once())->method('decode')->will($this->returnValue($request));
+
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->with($this->equalTo($result))
+            ->willReturn(new Response(HttpStatusCodes::HTTP_OK_CODE, array(), ""));
 
         $this->app->addHandler($handler);
         $this->app->run();
@@ -126,6 +148,12 @@ final class AppTest extends TestCase {
 
         $this->decoder->expects($this->once())->method('decode')->willReturn($request);
 
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->with($this->callback(function($result) {
+                return HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE === $result->getStatus();
+            }))->willReturn(new Response(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, array(), ""));
+
         $this->app->addHandler($handler);
         $this->app->run();
 
@@ -148,6 +176,12 @@ final class AppTest extends TestCase {
         $handler->expects($this->once())->method('run')->with($this->equalTo($request))->will($this->throwException(new \Exception()));
 
         $this->decoder->expects($this->once())->method('decode')->willReturn($request);
+
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->with($this->callback(function($result) {
+                return HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE === $result->getStatus();
+            }))->willReturn(new Response(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, array(), ""));
 
         $this->app->addHandler($handler);
         $this->app->run();
