@@ -221,4 +221,30 @@ final class AppTest extends TestCase {
 
         $this->assertEquals(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, \http_response_code());
     }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testRunShouldSetupResponseHeader() {
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Content-Length' => 34
+        ];
+        $response = $this->createMock(Response::class);
+        $response->method('getStatusCode')->willReturn(HttpStatusCodes::HTTP_OK_CODE);
+        $response->method('getHeaders')->willReturn($headers);
+
+        $this->decoder->method('decode')->will($this->throwException(new DecodeHeaderException('just for shortcut')));
+        $this->jsonRenderer
+            ->method('render')
+            ->willReturn($response);
+
+        $this->app->run();
+
+        $setup = \xdebug_get_headers();
+
+        $this->assertEquals(sizeof($headers), sizeof($setup));
+        $this->assertEquals('Content-Type: application/json', $setup[0]);
+        $this->assertEquals('Content-Length: 34', $setup[1]);
+    }
 }

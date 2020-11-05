@@ -42,16 +42,16 @@ final class App {
                 $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
             }
         } catch (DecodeHeaderException $ex) {
-            error_log($ex->getMessage());
+            // error_log($ex->getMessage());
             $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
         } catch (DecodeBodyException $ex) {
-            error_log("$ex");
+            // error_log("$ex");
             $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
         } catch (NoHandlerException $ex) {
-            error_log($ex->getMessage());
+            // error_log($ex->getMessage());
             $result = new Result(HttpStatusCodes::HTTP_NOT_FOUND_CODE);
         } catch (\Throwable $err) {
-            error_log("$err");
+            // error_log("$err");
             $result = new Result(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE);
         }
 
@@ -61,10 +61,7 @@ final class App {
             $response = $this->jsonRenderer->render($result);
         }
 
-        \http_response_code($response->getStatusCode());
-        if (strlen($response->getBody()) > 0) {
-            print($response->getBody());
-        }
+        $this->sendResponse($response);
     }
 
     private function findHandler(string $path, string $method) : Handler {
@@ -88,6 +85,18 @@ final class App {
             }
         } else {
             return false;
+        }
+    }
+
+    private function sendResponse(Response $response) : void {
+        \http_response_code($response->getStatusCode());
+
+        foreach ($response->getHeaders() as $key => $value) {
+            \header($key . ': ' . $value, true);
+        }
+
+        if (strlen($response->getBody()) > 0) {
+            print($response->getBody());
         }
     }
 }

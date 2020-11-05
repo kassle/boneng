@@ -19,6 +19,6 @@
         "phpunit/phpunit": "^9"
     },
     "scripts": {
-        "tests": "./vendor/bin/phpunit --stderr"
+        "tests": "./vendor/bin/phpunit"
     }
 }
