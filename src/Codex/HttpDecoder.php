@@ -17,7 +17,10 @@ class HttpDecoder implements Decoder {
     private const DEFAULT_MAX_LENGTH = 1024;
     private const DEFAULT_INPUT_SRC = "php://input";
 
-    public function __construct(int $maxLength, string $inputSrc) {
+    public function __construct(
+        int $maxLength = HttpDecoder::DEFAULT_MAX_LENGTH,
+        string $inputSrc = HttpDecoder::DEFAULT_INPUT_SRC) {
+
         $this->maxLength = $maxLength;
         $this->inputSrc = $inputSrc;
     }

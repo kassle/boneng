@@ -29,7 +29,7 @@ final class AppTest extends TestCase {
         $this->jsonRenderer = $this->createMock(Renderer::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->app = new App($this->decoder, $this->htmlRenderer, $this->jsonRenderer, $this->logger);
+        $this->app = new AppImpl($this->decoder, $this->htmlRenderer, $this->jsonRenderer, $this->logger);
     }
 
     public function testDecodingFailProcessHeaderShouldReturn400() {
