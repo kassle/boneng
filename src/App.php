@@ -10,6 +10,7 @@ use Boneng\Model\Request;
 use Boneng\Model\Response;
 use Boneng\Model\Result;
 use Boneng\Processor\Handler;
+use Boneng\Processor\Logger;
 use Boneng\Processor\Renderer;
 use HttpStatusCodes\HttpStatusCodes;
 
@@ -20,11 +21,13 @@ final class App {
     private $decoder;
     private $htmlRenderer;
     private $jsonRenderer;
+    private $logger;
 
-    public function __construct(Decoder $decoder, Renderer $htmlRenderer, Renderer $jsonRenderer) {
+    public function __construct(Decoder $decoder, Renderer $htmlRenderer, Renderer $jsonRenderer, Logger $logger) {
         $this->decoder = $decoder;
         $this->htmlRenderer = $htmlRenderer;
         $this->jsonRenderer = $jsonRenderer;
+        $this->logger = $logger;
     }
 
     public function addHandler(Handler $handler) : void {
@@ -42,16 +45,16 @@ final class App {
                 $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
             }
         } catch (DecodeHeaderException $ex) {
-            // error_log($ex->getMessage());
+            $this->logger->info($ex->getMessage());
             $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
         } catch (DecodeBodyException $ex) {
-            // error_log("$ex");
+            $this->logger->warn('Unable to decode request body', $ex);
             $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
         } catch (NoHandlerException $ex) {
-            // error_log($ex->getMessage());
+            $this->logger->info($ex->getMessage());
             $result = new Result(HttpStatusCodes::HTTP_NOT_FOUND_CODE);
         } catch (\Throwable $err) {
-            // error_log("$err");
+            $this->logger->error('Unhandled Error', $err);
             $result = new Result(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE);
         }
 
