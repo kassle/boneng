@@ -250,4 +250,30 @@ final class AppTest extends TestCase {
         $this->assertEquals('Content-Type: application/json', $setup[0]);
         $this->assertEquals('Content-Length: 34', $setup[1]);
     }
+
+    public function testRunShouldSendResponseCodeInternalErrorWhenRendererFail() {
+        $this->decoder->method('decode')->will($this->throwException(new DecodeHeaderException('quick route')));
+        $this->jsonRenderer->expects($this->once())
+            ->method('render')
+            ->will($this->throwException(new \Exception('testing purpose exception')));
+
+        $this->app->run();
+
+        $this->assertEquals(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, \http_response_code());
+    }
+
+    public function testRunShouldSendResponseCodeInternalErrorWhenHTMLRendererFail() {
+        $headers = [ 'Accept' => 'text/html' ];
+        $request = $this->createMock(Request::class);
+        $request->method('getHeaders')->willReturn($headers);
+
+        $this->decoder->method('decode')->willReturn($request);
+        $this->htmlRenderer->expects($this->once())
+            ->method('render')
+            ->will($this->throwException(new \Exception('testing purpose exception')));
+
+        $this->app->run();
+
+        $this->assertEquals(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, \http_response_code());
+    }
 }

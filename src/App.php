@@ -58,12 +58,7 @@ final class App {
             $result = new Result(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE);
         }
 
-        if ($this->isHtml($request)) {
-            $response = $this->htmlRenderer->render($result);
-        } else {
-            $response = $this->jsonRenderer->render($result);
-        }
-
+        $response = $this->renderResult($result, $request);
         $this->sendResponse($response);
     }
 
@@ -76,6 +71,20 @@ final class App {
         }
 
         throw new NoHandlerException($method, $path);
+    }
+
+    private function renderResult(Result $result, Request $request = NULL) : Response {
+        try {
+            if ($this->isHtml($request)) {
+                $response = $this->htmlRenderer->render($result);
+            } else {
+                $response = $this->jsonRenderer->render($result);
+            }
+
+            return $response;
+        } catch (\Throwable $err) {
+            return new Response(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, array(), '');
+        }
     }
 
     private function isHtml(Request $request = NULL) : bool {
