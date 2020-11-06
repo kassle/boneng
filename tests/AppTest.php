@@ -11,9 +11,9 @@ use Boneng\Model\Request;
 use Boneng\Model\Response;
 use Boneng\Model\Result;
 use Boneng\Processor\Handler;
-use Boneng\Processor\Logger;
 use Boneng\Processor\Renderer;
 use HttpStatusCodes\HttpStatusCodes;
+use Psr\Log\LoggerInterface;
 
 final class AppTest extends TestCase {
     private $decoder;
@@ -27,7 +27,7 @@ final class AppTest extends TestCase {
         $this->decoder = $this->createMock(Decoder::class);
         $this->htmlRenderer = $this->createMock(Renderer::class);
         $this->jsonRenderer = $this->createMock(Renderer::class);
-        $this->logger = $this->createMock(Logger::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->app = new App($this->decoder, $this->htmlRenderer, $this->jsonRenderer, $this->logger);
     }

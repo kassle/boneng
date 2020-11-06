@@ -10,9 +10,9 @@ use Boneng\Model\Request;
 use Boneng\Model\Response;
 use Boneng\Model\Result;
 use Boneng\Processor\Handler;
-use Boneng\Processor\Logger;
 use Boneng\Processor\Renderer;
 use HttpStatusCodes\HttpStatusCodes;
+use Psr\Log\LoggerInterface;
 
 final class App {
     private const KEY_ACCEPT_TYPE = 'Accept';
@@ -23,7 +23,7 @@ final class App {
     private $jsonRenderer;
     private $logger;
 
-    public function __construct(Decoder $decoder, Renderer $htmlRenderer, Renderer $jsonRenderer, Logger $logger) {
+    public function __construct(Decoder $decoder, Renderer $htmlRenderer, Renderer $jsonRenderer, LoggerInterface $logger) {
         $this->decoder = $decoder;
         $this->htmlRenderer = $htmlRenderer;
         $this->jsonRenderer = $jsonRenderer;
@@ -45,16 +45,16 @@ final class App {
                 $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
             }
         } catch (DecodeHeaderException $ex) {
-            $this->logger->info($ex->getMessage());
+            $this->logger->notice("$ex");
             $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
         } catch (DecodeBodyException $ex) {
-            $this->logger->warn('Unable to decode request body', $ex);
+            $this->logger->notice("$ex");
             $result = new Result(HttpStatusCodes::HTTP_BAD_REQUEST_CODE);
         } catch (NoHandlerException $ex) {
-            $this->logger->info($ex->getMessage());
+            $this->logger->info("$ex");
             $result = new Result(HttpStatusCodes::HTTP_NOT_FOUND_CODE);
         } catch (\Throwable $err) {
-            $this->logger->error('Unhandled Error', $err);
+            $this->logger->error("$err");
             $result = new Result(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE);
         }
 
@@ -83,6 +83,7 @@ final class App {
 
             return $response;
         } catch (\Throwable $err) {
+            $this->logger->error("$err");
             return new Response(HttpStatusCodes::HTTP_INTERNAL_SERVER_ERROR_CODE, array(), '');
         }
     }
