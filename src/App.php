@@ -2,10 +2,9 @@
 
 namespace Boneng;
 
-final class App {
-    private $handlers = array();
+use Boneng\Processor\Handler;
 
-    public function run() {
-        print('hello');
-    }
+interface App {
+    public function addHandler(Handler $handler) : void;
+    public function run() : void;
 }

@@ -1,6 +1,10 @@
-# Setup
-composer install
+# Requirements
+
+- php 7.3
+- mbstring
+- xdebug (for unit test only)
 
 # Development
+
 ### Running Unit Tests
-./vendor/bin/phpunit tests
+composer run tests
