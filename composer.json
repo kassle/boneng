@@ -1,6 +1,8 @@
 {
     "name": "krybrig/boneng",
-    "description": "PHP framework",
+    "description": "Bare bone framework",
+    "keywords": ["php","framework","engine","boneng"],
+    "license": "MIT",
     "authors": [
         {
             "name": "kassle",
