@@ -32,7 +32,7 @@ final class AppImpl implements App {
     }
 
     public function addHandler(Handler $handler) : void {
-        $this->handlers[$handler->getPath()][$handler->getMethod()] = $handler;
+        $this->handlers[$handler->getPath()][\strtoupper($handler->getMethod())] = $handler;
     }
 
     public function run() : void {
