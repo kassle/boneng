@@ -16,6 +16,7 @@ class HttpDecoder implements Decoder {
 
     private const DEFAULT_MAX_LENGTH = 1024;
     private const DEFAULT_INPUT_SRC = "php://input";
+    private const BODYLESS_METHODS = array("GET");
 
     public function __construct(
         int $maxLength = HttpDecoder::DEFAULT_MAX_LENGTH,
@@ -71,6 +72,8 @@ class HttpDecoder implements Decoder {
             $length = intval($headers[HttpDecoder::KEY_CONTENT_LENGTH]);
             if (HttpDecoder::VALUE_TYPE_JSON == $type && $this->maxLength >= $length) {
                 return $this->parseBody($length);
+            } else if ($this->isBodyOptional($this->getMethod($headers))) {
+                return array();
             } else {
                 throw new DecodeHeaderException('Unsupported content-type: ' . $headers[HttpDecoder::KEY_CONTENT_TYPE] . ' and content-length: ' . $length);
             }
@@ -82,6 +85,10 @@ class HttpDecoder implements Decoder {
     private function isBodyRequiredHeadersExist(array $headers) : bool {
         return \array_key_exists(HttpDecoder::KEY_CONTENT_TYPE, $headers) &&
             \array_key_exists(HttpDecoder::KEY_CONTENT_LENGTH, $headers);
+    }
+
+    private function isBodyOptional(string $method) : bool {
+        return \in_array($method, HttpDecoder::BODYLESS_METHODS);
     }
 
     private function parseBody(int $length) : array {
