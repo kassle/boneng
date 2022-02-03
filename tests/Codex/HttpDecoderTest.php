@@ -60,6 +60,15 @@ final class HttpDecoderTest extends TestCase {
         $this->assertEquals(0, sizeof($request->getHeaders()));
     }
 
+    public function testDecodeShouldNotThrowUnsupportedContentTypeWhenMethodIsGet() {
+        $_SERVER['CONTENT_TYPE'] = '';
+        $_SERVER['CONTENT_LENGTH'] = '';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $request = $this->decoder->decode();
+        $this->assertEquals(0, sizeof($request->getBody()));
+    }
+
     public function testDecodeShouldReturnAllSpecifiedHeaders() {
         $header_key1 = 'Accept';
         $header_value1 = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
@@ -71,7 +80,6 @@ final class HttpDecoderTest extends TestCase {
         $_SERVER['HTTP_ACCEPT'] = $header_value1;
         $_SERVER['HTTP_USER_AGENT'] = $header_value2;
         $_SERVER['HOST'] = 'localhost';
-
         $request = $this->decoder->decode();
 
         $this->assertTrue($this->isArraysEquals($headers, $request->getHeaders()));
@@ -123,6 +131,7 @@ final class HttpDecoderTest extends TestCase {
     public function testDecodeShouldThrowDecodeHeaderExceptionWhenBodyIsNotJson() {
         $this->expectException(DecodeHeaderException::class);
 
+        $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['CONTENT_TYPE'] = 'text/html';
         $_SERVER['CONTENT_LENGTH'] = '100';
 
@@ -133,6 +142,7 @@ final class HttpDecoderTest extends TestCase {
     public function testDecodeShouldThrowDecodeHeaderExceptionWhenBodyLengthIsTooLarge() {
         $this->expectException(DecodeHeaderException::class);
 
+        $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['CONTENT_TYPE'] = 'text/html';
         $_SERVER['CONTENT_LENGTH'] = '1025';
 
