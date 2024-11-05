@@ -14,16 +14,22 @@ class HttpDecoder implements Decoder {
 
     private const VALUE_TYPE_JSON = 'application/json';
 
-    private const DEFAULT_MAX_LENGTH = 1024;
-    private const DEFAULT_INPUT_SRC = "php://input";
-    private const BODYLESS_METHODS = array("GET");
+    public const DEFAULT_MAX_LENGTH = 1024;
+    public const DEFAULT_INPUT_SRC = "php://input";
+    public const DEFAULT_BODYLESS_METHODS = array("GET");
+
+    private int $maxLength;
+    private string $inputSrc;
+    private array $bodylessMethods;
 
     public function __construct(
         int $maxLength = HttpDecoder::DEFAULT_MAX_LENGTH,
-        string $inputSrc = HttpDecoder::DEFAULT_INPUT_SRC) {
+        string $inputSrc = HttpDecoder::DEFAULT_INPUT_SRC,
+        array $bodylessMethods = HttpDecoder::DEFAULT_BODYLESS_METHODS) {
 
         $this->maxLength = $maxLength;
         $this->inputSrc = $inputSrc;
+        $this->bodylessMethods = $bodylessMethods;
     }
 
     public function decode() : Request {
@@ -72,7 +78,7 @@ class HttpDecoder implements Decoder {
             $length = intval($headers[HttpDecoder::KEY_CONTENT_LENGTH]);
             if (HttpDecoder::VALUE_TYPE_JSON == $type && $this->maxLength >= $length) {
                 return $this->parseBody($length);
-            } else if ($this->isBodyOptional($this->getMethod($headers))) {
+            } else if ($this->isBodyOptional($this->getMethod())) {
                 return array();
             } else {
                 throw new DecodeHeaderException('Unsupported content-type: ' . $headers[HttpDecoder::KEY_CONTENT_TYPE] . ' and content-length: ' . $length);
@@ -88,7 +94,7 @@ class HttpDecoder implements Decoder {
     }
 
     private function isBodyOptional(string $method) : bool {
-        return \in_array($method, HttpDecoder::BODYLESS_METHODS);
+        return \in_array($method, $this->bodylessMethods);
     }
 
     private function parseBody(int $length) : array {
